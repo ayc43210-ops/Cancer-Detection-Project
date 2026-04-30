@@ -46,27 +46,48 @@ def prepare_image(image_data):
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     try:
+        # 1. Read and Process the Image
         contents = await file.read()
         processed_image = prepare_image(contents)
 
-        # 1. These lines MUST happen first
+        # 2. Run Neural Network Inference
         predictions = model.predict(processed_image)
         idx = np.argmax(predictions[0])
         confidence = float(np.max(predictions[0]))
-
-        # 2. NOW idx and confidence exist, so you can use them
+        
+        # Get data from your DATA_INFO list
         result = DATA_INFO[idx]
 
+        # 3. Handle JSON Database Logic
+        file_path = "patient_data.json"
+        
+        # Create the record object
         patient_record = {
             "classification": result['label'],
-            "confidence": confidence, # No more error!
-            "risk": result['risk']
+            "confidence": confidence,
+            "risk": result['risk'],
+            "type": result['type'],
+            "timestamp": str(np.datetime64('now'))
         }
-        
-        with open("patient_data.json", "a") as f:
-            json.dump(patient_record, f)
-            f.write("\n") 
 
+        # Load existing history or start fresh list
+        history = []
+        if os.path.exists(file_path):
+            with open(file_path, "r") as f:
+                try:
+                    history = json.load(f)
+                    # If the file exists but isn't a list yet, reset it
+                    if not isinstance(history, list):
+                        history = []
+                except json.JSONDecodeError:
+                    history = []
+
+        # Add new result and save back to disk
+        history.append(patient_record)
+        with open(file_path, "w") as f:
+            json.dump(history, f, indent=4)
+
+        # 4. Return JSON response to the Frontend
         return {
             "success": True,
             "classification": result['label'],
@@ -74,13 +95,13 @@ async def predict(file: UploadFile = File(...)):
             "risk_level": result['risk'],
             "type": result['type']
         }
-    except Exception as e:
-        print(f"Error: {e}")
-        return {"success": False, "error": str(e)}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+        print(f"CRITICAL ERROR: {e}")
+        return {
+            "success": False, 
+            "error": str(e)
+        }
 # Health check route
 @app.get("/")
 def home():

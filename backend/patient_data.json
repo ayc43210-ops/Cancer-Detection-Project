@@ -1,0 +1,5 @@
+[
+  {"classification": "Nevus", "confidence": 0.9389201998710632, "risk": "Low"},
+  {"classification": "Melanoma", "confidence": 0.981756329536438, "risk": "Critical"},
+  {"classification": "Melanoma", "confidence": 0.9196878671646118, "risk": "Critical"}
+]

@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 import io
 import os
+import json
 
 # 1. Initialize FastAPI
 app = FastAPI(title="DermAI Backend API")
@@ -45,26 +46,37 @@ def prepare_image(image_data):
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     try:
-        # Read the uploaded image
         contents = await file.read()
         processed_image = prepare_image(contents)
 
-        # Run Neural Network Inference
+        # 1. These lines MUST happen first
         predictions = model.predict(processed_image)
         idx = np.argmax(predictions[0])
         confidence = float(np.max(predictions[0]))
 
+        # 2. NOW idx and confidence exist, so you can use them
         result = DATA_INFO[idx]
 
-        # Return JSON response to the Frontend
+        patient_record = {
+            "classification": result['label'],
+            "confidence": confidence, # No more error!
+            "risk": result['risk']
+        }
+        
+        with open("patient_data.json", "a") as f:
+            json.dump(patient_record, f)
+            f.write("\n") 
+
         return {
             "success": True,
             "classification": result['label'],
             "confidence": f"{confidence * 100:.2f}%",
             "risk_level": result['risk'],
-            "type": result['type'],
-            "raw_scores": predictions[0].tolist()
+            "type": result['type']
         }
+    except Exception as e:
+        print(f"Error: {e}")
+        return {"success": False, "error": str(e)}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

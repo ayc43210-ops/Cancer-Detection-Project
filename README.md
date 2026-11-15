@@ -1,6 +1,8 @@
 # DermAI: Skin Cancer Detection
 
-DermAI is a clinical decision-support prototype that classifies skin lesion images into one of seven diagnostic categories using a deep learning model (transfer learning on MobileNetV2, trained on the HAM10000 dataset). It ships with two ways to use the model: a **Streamlit app** for interactive use and a **FastAPI backend** that a separate frontend can call.
+DermAI is a clinical decision-support prototype that classifies skin lesion images into one of seven diagnostic categories using a deep learning model (transfer learning on MobileNetV2, trained on the HAM10000 dataset). It ships with two ways to use the model: a **Streamlit app** for interactive use and a **FastAPI backend** that the React dashboard calls.
+
+**Frontend:** [ayc43210-ops/dermai-dashboard](https://github.com/ayc43210-ops/dermai-dashboard) (Vite + React + TypeScript). It sends images to this backend's `/predict` endpoint.
 
 > **Disclaimer:** This is an educational / research project. It is **not** a medical device and must not be used for real diagnosis or treatment decisions. Always consult a qualified dermatologist.
 
@@ -11,7 +13,7 @@ DermAI is a clinical decision-support prototype that classifies skin lesion imag
 - Risk level and lesion type (benign / pre-malignant / malignant) for each prediction
 - Downloadable plain-text clinical report
 - Session history log (Streamlit app)
-- REST API (`POST /predict`) with CORS enabled, so a web frontend can integrate with it
+- REST API (`POST /predict`) with CORS enabled, used by the [DermAI dashboard](https://github.com/ayc43210-ops/dermai-dashboard)
 - Predictions saved to `backend/patient_data.json` by the API
 
 ## Classes
@@ -37,7 +39,7 @@ Cancer-Detection-Project/
 │   ├── patient_data.json      # Prediction log written by the API
 │   └── models/
 │       └── skin_cancer_model.h5   # Trained Keras model used for inference
-├── frontend/                  # Placeholder for a React frontend (not yet implemented)
+├── frontend/                  # Empty placeholder; the real frontend is the separate dermai-dashboard repo
 ├── notebooks/
 │   ├── training.py            # PyTorch transfer-learning setup (work in progress)
 │   └── exploration.py         # Placeholder
@@ -97,6 +99,20 @@ uvicorn main:app --reload
 
 The API is served at http://127.0.0.1:8000, with interactive docs at http://127.0.0.1:8000/docs.
 
+### 4. Run the dashboard (optional)
+
+In a second terminal:
+
+```bash
+git clone https://github.com/ayc43210-ops/dermai-dashboard.git
+cd dermai-dashboard
+cp .env.example .env        # VITE_API_URL defaults to http://127.0.0.1:8000
+npm install
+npm run dev
+```
+
+Open the URL Vite prints. The ONLINE indicator in the top bar turns green when it can reach this API.
+
 ## API Reference
 
 ### `GET /`
@@ -131,7 +147,8 @@ On failure, the API returns `{ "success": false, "error": "<message>" }`.
 
 ## Known Limitations / Roadmap
 
-- `frontend/` is an empty placeholder; no web UI is implemented yet.
+- The `frontend/` folder in this repo is empty and can be deleted; the UI lives in the [dermai-dashboard](https://github.com/ayc43210-ops/dermai-dashboard) repo.
+- `patient_data.json` is a simple local log of predictions; the dashboard does not read it, and its session history resets on refresh.
 - `notebooks/training.py` is a PyTorch setup script (dataset class, augmentation, model head, optimizer) without a training loop, while the deployed model is a Keras `.h5` file, so the training pipeline is not reproducible from this repo yet.
 - `notebooks/exploration.py` and `scripts/download_data.py` are empty.
 - `requirements.txt` lists PyTorch but not the TensorFlow, FastAPI and Uvicorn packages the backend actually uses.
